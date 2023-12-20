@@ -1,0 +1,30 @@
+[build-system]
+requires = [
+    'meson-python',
+    'cython',
+]
+build-backend = 'mesonpy'
+
+[project]
+name = 'pyaccel'
+version = '0.0.1'
+description = "Wrapper for Apple's sparse solvers in the Accelerate framework"
+readme = 'README.md'
+requires-python = '>=3.8'
+license = {file = 'LICENSE.md'}
+authors = [
+  {name = 'Joseph Capriotti', email = 'josephrcapriotti@gmail.com'},
+]
+keywords = [
+    'sparse', 'solver', 'wrapper', 'apple'
+]
+dependencies = [
+    "numpy>=1.22.4",
+    "scipy>=1.8",
+]
+
+
+[project.urls]
+Homepage = 'https://simpeg.xyz'
+Documentation = 'https://discretize.simpeg.xyz'
+Repository = 'http://github.com/jcapriot/pyaccel.git'
