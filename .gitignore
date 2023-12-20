@@ -123,4 +123,7 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
+# pycharm
+.idea/*
+
 pyaccel/accel_solver.c
