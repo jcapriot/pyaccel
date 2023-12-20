@@ -24,7 +24,7 @@ def configuration(parent_package="", top_path=None):
     config.add_extension(
         "accel_solver",
         sources=["accel_solver.c"],
-        include_dirs=get_numpy_include_dirs(),
+        # include_dirs=get_numpy_include_dirs(),
         extra_compile_args=['-w', '-framework', 'Accelerate'],
         extra_link_args=['-framework', 'Accelerate']
     )

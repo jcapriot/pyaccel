@@ -1,6 +1,6 @@
 #cython: language_level=3
 #cython: linetrace=True
-cimport numpy as np
+# cimport numpy as np
 from cython cimport numeric
 
 import warnings
@@ -154,6 +154,33 @@ cdef extern from 'Accelerate/Accelerate.h':
     #void SparseSolve(SparseOpaqueFactorization_Float Factored, DenseMatrix_Float XB)
     #void SparseSolve(SparseOpaqueFactorization_Float Factored, DenseMatrix_Float B, DenseMatrix_Float X)
 
+FACTOR_TYPES = {
+    "cholesky" : 0,
+    "ldlt" : 1,
+    "ldlt-unpivoted" : 2,
+    "ldlt-sbk" : 3,
+    "ldlt-tpp" : 4,
+    "qr" : 5,
+    "cholesky-ata" : 6,
+}
+#
+# cdef SparseFactorization_t _get_factor_type(int type_int):
+#     if type_int == 0:
+#         return SparseFactorization_t.SparseFactorizationCholesky
+#     elif type_int == 1:
+#         return SparseFactorization_t.SparseFactorizationLDLT
+#     elif type_int == 2:
+#         return SparseFactorization_t.SparseFactorizationLDLTUnpivoted
+#     elif type_int == 3:
+#         return SparseFactorization_t.SparseFactorizationLDLTSBK,
+#     elif type_int == 4:
+#         return SparseFactorization_t.SparseFactorizationLDLTTPP,
+#     elif type_int == 5:
+#         return SparseFactorization_t.SparseFactorizationQR,
+#     elif type_int == 6:
+#         return SparseFactorization_t.SparseFactorizationCholeskyAtA
+#
+
 
 cdef class Solver:
     cdef:
@@ -163,8 +190,12 @@ cdef class Solver:
         double[:] A_data
         SparseOpaqueFactorization_Double _factor
         bool factored
+        int _algorithm
 
-    def __init__(self, A):
+    def __init__(self, A, factor_type=None):
+        if factor_type is None:
+            factor_type = "cholesky"
+        self._algorithm = FACTOR_TYPES[factor_type]
         A = sp.tril(A, format='csc')
         m, n = A.shape
         self._A.structure.rowCount = m
@@ -188,7 +219,20 @@ cdef class Solver:
 
     def factor(self):
         if not self.factored:
-            self._factor = SparseFactor(SparseFactorization_t.SparseFactorizationLDLTSBK, self._A)
+            if self._algorithm == 0:
+                self._factor = SparseFactor(SparseFactorization_t.SparseFactorizationCholesky, self._A)
+            elif self._algorithm == 1:
+                self._factor = SparseFactor(SparseFactorization_t.SparseFactorizationLDLT, self._A)
+            elif self._algorithm == 2:
+                self._factor = SparseFactor(SparseFactorization_t.SparseFactorizationLDLTUnpivoted, self._A)
+            elif self._algorithm == 3:
+                self._factor = SparseFactor(SparseFactorization_t.SparseFactorizationLDLTSBK, self._A)
+            elif self._algorithm == 4:
+                self._factor = SparseFactor(SparseFactorization_t.SparseFactorizationLDLTTPP, self._A)
+            elif self._algorithm == 5:
+                self._factor = SparseFactor(SparseFactorization_t.SparseFactorizationQR, self._A)
+            elif self._algorithm == 6:
+                self._factor = SparseFactor(SparseFactorization_t.SparseFactorizationCholeskyAtA, self._A)
         self.factored = True
 
     def solve(self, rhs):

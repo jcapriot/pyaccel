@@ -14,12 +14,12 @@ def configuration(parent_package="", top_path=None):
         quiet=True,
     )
 
-    config.add_subpackage("py_accel")
+    config.add_subpackage("pyaccel")
 
     return config
 
 metadata = dict(
-    name='py_accel',
+    name='pyaccel',
     version='0.0.1',
     python_requires=">=3.6",
     setup_requires=[

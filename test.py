@@ -1,6 +1,6 @@
 import scipy.sparse as sp
 import numpy as np
-from py_accel.accel_solver import Solver
+from pyaccel.accel_solver import Solver
 import discretize
 import time
 from pydiso.mkl_solver import MKLPardisoSolver
