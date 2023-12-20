@@ -45,32 +45,18 @@ Me = mesh.get_edge_inner_product()
 Mfz = sp.diags(mesh.cell_volumes)
 print(C.shape, Mfz.shape, Me.shape)
 A_c = C.T @ Mfz @ C + 1j * Me
-A_r = C.T @ Mfz @ C
-A_i = Me
 
 x_c = np.random.rand(A_c.shape[1]) + 1j * np.random.rand(A_c.shape[1])
 
 b_c = A_c @ x_c
 
-# A_solve = sp.bmat([[A_r, A_i], [A_i, -A_r]], format='csc')
-# Ainv3 = Solver(A_solve)
-# Ainv3.factor()
-
-# Ainv3 = MKLPardisoSolver(A_solve, matrix_type='real_symmetric_indefinite')
-
-# x_c2 = Ainv3.solve(np.r_[b_c.real, b_c.imag])
-# x_c2 = x_c2[:len(x_c2)//2] - 1j * x_c2[len(x_c2)//2:]
-
-A_solve = sp.bmat([[A_i, A_r], [A_r, -A_i]], format='csc')
 t1 = time.time()
-Ainv3 = Solver(A_solve, factor_type='ldlt-sbk')
+Ainv3 = Solver(A_c)
 Ainv3.factor()
 t2 = time.time()
 
 t2 = time.time()
-x_c2 = Ainv3.solve(np.r_[b_c.imag, b_c.real], refinement_steps=2)
-n = len(b_c)
-x_c2 = x_c2[:n] + 1j * x_c2[n:]
+x_c2 = Ainv3.solve(b_c, refinement_steps=2)
 t3 = time.time()
 
 print('Solver worked:', np.allclose(x_c, x_c2))

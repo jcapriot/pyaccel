@@ -174,14 +174,36 @@ cdef class Solver:
         int[:] row_inds
         double[:] A_data
         SparseOpaqueFactorization_Double _factor
-        bool factored
         int _algorithm
+        bool factored
+        bool _complex
 
     def __init__(self, A, factor_type=None):
-        if factor_type is None:
-            factor_type = "cholesky"
+        if np.issubdtype(A.dtype, np.complexfloating):
+            # We can replace A with another matrix that is
+            # (A + j * B) * (x_r + j * x_i) = (b_r + j * b_i)
+            # which breaks out system of equations for a complex matrix
+            # into:
+            # [A, -B] [x_r] = [b_r]
+            # [B,  A] [x_i] = [b_i]
+            # But we exchange the top and bottom rows to preserve any
+            # symmetric aspect of the underlying matrix
+            self._complex = True
+            A_r = A.real
+            A_i = A.imag
+
+            # don't need the upper triangle for accel.
+            A = sp.tril(sp.bmat([[A_i, None],[A_r, -A_i]]), format='csc')
+            if factor_type is None:
+                factor_type = 'ldlt-sbk'
+        else:
+            self._complex = False
+            if factor_type is None:
+                factor_type = "cholesky"
+            A = sp.tril(A, format='csc')
+
         self._algorithm = FACTOR_TYPES[factor_type]
-        A = sp.tril(A, format='csc')
+        # if
         m, n = A.shape
         self._A.structure.rowCount = m
         self._A.structure.columnCount = n
@@ -220,7 +242,14 @@ cdef class Solver:
                 self._factor = SparseFactor(SparseFactorization_t.SparseFactorizationCholeskyAtA, self._A)
         self.factored = True
 
-    def solve(self, rhs, refinement_steps=1):
+    def solve(self, rhs, out=None, refinement_steps=1):
+        if self._complex:
+            rhs = rhs.view(np.float64)
+            rhs = rhs.reshape((-1, 2))
+            # rhs is (n, 2) first column is real, second is imaginary
+            # need to reverse last dimension, transpose it, and flatten
+            rhs = rhs[:, ::-1].T.reshape(-1)
+            # this should be ordered as np.r_[rhs.imag, rhs.real]
         cdef double[:] b = np.require(rhs, dtype=np.double, requirements='C')
         cdef double[:] x = np.empty(len(rhs), np.double)
         cdef double[:] r
@@ -260,4 +289,9 @@ cdef class Solver:
                 for j in range(n):
                     x[j] -= corr[j]
 
-        return np.array(x)
+        out = np.array(x)
+        if self._complex:
+            # this should be ordered as np.r_[rhs.imag, rhs.real]
+            out = out.reshape([2, -1]).T.reshape(-1)
+            out = out.view(np.complex128)
+        return out
