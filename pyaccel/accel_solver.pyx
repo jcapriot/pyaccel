@@ -154,6 +154,8 @@ cdef extern from 'Accelerate/Accelerate.h':
     #void SparseSolve(SparseOpaqueFactorization_Float Factored, DenseMatrix_Float XB)
     #void SparseSolve(SparseOpaqueFactorization_Float Factored, DenseMatrix_Float B, DenseMatrix_Float X)
 
+    void SparseMultiplyAdd(SparseMatrix_Double, DenseVector_Double, DenseVector_Double);
+
 FACTOR_TYPES = {
     "cholesky" : 0,
     "ldlt" : 1,
@@ -163,23 +165,6 @@ FACTOR_TYPES = {
     "qr" : 5,
     "cholesky-ata" : 6,
 }
-#
-# cdef SparseFactorization_t _get_factor_type(int type_int):
-#     if type_int == 0:
-#         return SparseFactorization_t.SparseFactorizationCholesky
-#     elif type_int == 1:
-#         return SparseFactorization_t.SparseFactorizationLDLT
-#     elif type_int == 2:
-#         return SparseFactorization_t.SparseFactorizationLDLTUnpivoted
-#     elif type_int == 3:
-#         return SparseFactorization_t.SparseFactorizationLDLTSBK,
-#     elif type_int == 4:
-#         return SparseFactorization_t.SparseFactorizationLDLTTPP,
-#     elif type_int == 5:
-#         return SparseFactorization_t.SparseFactorizationQR,
-#     elif type_int == 6:
-#         return SparseFactorization_t.SparseFactorizationCholeskyAtA
-#
 
 
 cdef class Solver:
@@ -235,17 +220,44 @@ cdef class Solver:
                 self._factor = SparseFactor(SparseFactorization_t.SparseFactorizationCholeskyAtA, self._A)
         self.factored = True
 
-    def solve(self, rhs):
+    def solve(self, rhs, refinement_steps=1):
         cdef double[:] b = np.require(rhs, dtype=np.double, requirements='C')
         cdef double[:] x = np.empty(len(rhs), np.double)
+        cdef double[:] r
+        cdef double[:] corr
 
-        cdef DenseVector_Double B, X
-        B.count = len(rhs)
+        cdef int n = len(rhs)
+        cdef int i, j
+
+        cdef DenseVector_Double B, X, R, C
+        B.count = n
         B.data = &b[0]
 
-        X.count = len(rhs)
+        X.count = n
         X.data = &x[0]
 
         SparseSolve(self._factor, B, X)
+
+        if refinement_steps > 1:
+            _r = np.empty(len(rhs), np.double)
+            r = _r
+            corr = np.empty(len(rhs), np.double)
+
+            R.count = n
+            R.data = &r[0]
+            C.count = n
+            C.data = &corr[0]
+
+            for i in range(refinement_steps-1):
+                # R = A*X - B
+
+                for j in range(n):
+                    r[j] = -b[j]
+
+                SparseMultiplyAdd(self._A, X, R)
+                SparseSolve(self._factor, R, C)
+
+                for j in range(n):
+                    x[j] -= corr[j]
 
         return np.array(x)
