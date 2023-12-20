@@ -67,27 +67,11 @@ Ainv3 = Solver(A_solve, factor_type='ldlt-sbk')
 Ainv3.factor()
 t2 = time.time()
 
-print(f'Apple time, factor: {t2-t1}')
-# def solve_it(b):
-#     n = len(b)
-#     x = Ainv3.solve(np.r_[b.imag, b.real])
-#     return x[:n] + 1j * x[n:]
-#
-# x_c2 = solve_it(b_c)
-# r = b_c - A_c @ x_c2
-# print(np.linalg.norm(r))
-# x_c2 += solve_it(r)
-# r = b_c - A_c @ x_c2
-# print(np.linalg.norm(r))
-# t3 = time.time()
 t2 = time.time()
-x_c2 = Ainv3.solve(np.r_[b_c.imag, b_c.real], refinement_steps=10)
+x_c2 = Ainv3.solve(np.r_[b_c.imag, b_c.real], refinement_steps=2)
 n = len(b_c)
 x_c2 = x_c2[:n] + 1j * x_c2[n:]
 t3 = time.time()
-
-r = b_c - A_c @ x_c2
-print(np.linalg.norm(r))
 
 print('Solver worked:', np.allclose(x_c, x_c2))
 print(f'Apple time, factor: {t2-t1}, solve: {t3-t2}')
