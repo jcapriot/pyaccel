@@ -1,12 +1,7 @@
 #cython: language_level=3
 #cython: linetrace=True
-# cimport numpy as np
-from cython cimport numeric
-
-import warnings
 import numpy as np
 import scipy.sparse as sp
-import os
 
 from libc.stdint cimport uint8_t
 from libcpp cimport bool
@@ -244,10 +239,16 @@ cdef class Solver:
 
     def solve(self, rhs, out=None, refinement_steps=1):
         if self._complex:
+            # TODO ensure rhs is complex
+
+            # A complex number is a pair of two floats
+            # this lets us look at them all as floats ordered as x_r_1, x_i_1, x_r_2, x_i_2...
             rhs = rhs.view(np.float64)
             rhs = rhs.reshape((-1, 2))
             # rhs is (n, 2) first column is real, second is imaginary
-            # need to reverse last dimension, transpose it, and flatten
+
+            # For the system of equations we need to reverse last dimension
+            # transpose it, and flatten it
             rhs = rhs[:, ::-1].T.reshape(-1)
             # this should be ordered as np.r_[rhs.imag, rhs.real]
         cdef double[:] b = np.require(rhs, dtype=np.double, requirements='C')
@@ -291,7 +292,8 @@ cdef class Solver:
 
         out = np.array(x)
         if self._complex:
-            # this should be ordered as np.r_[rhs.imag, rhs.real]
+            # this should do the equivalent as out = out[:n] + 1j * out[n:]
+            # but without multiplying and adding and type casting.
             out = out.reshape([2, -1]).T.reshape(-1)
             out = out.view(np.complex128)
         return out
