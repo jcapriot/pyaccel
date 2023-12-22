@@ -1,0 +1,36 @@
+name: Python Package using Conda
+
+on: [push]
+
+jobs:
+  build-linux:
+    runs-on: mac-latest
+    strategy:
+      max-parallel: 5
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Setup micromamba
+      uses: mamba-org/setup-micromamba@v1
+      with:
+        micromamba-version: '1.3.1-0'
+        environment-name: pyaccel-test
+        init-shell: >-
+          bash
+        cache-environment: true
+        post-cleanup: 'all'
+
+    - name: Install requirements
+      run: >-
+        mamba install -y python=3.11 numpy scipy cython discretize meson-python meson ninja pytest
+      shell: micromamba-shell {0}
+
+    - name: Install package
+      run: >-
+        ./install_editable.sh
+      shell: micromamba-shell {0}
+
+    - name: run test
+      run: pytest --version
+      shell: micromamba-shell {0}
+
