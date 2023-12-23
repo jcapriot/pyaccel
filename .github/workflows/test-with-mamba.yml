@@ -38,6 +38,6 @@ jobs:
       shell: micromamba-shell {0}
 
     - name: run test
-      run: pytest --version
+      run: pytest tests/test_pyaccel.py
       shell: micromamba-shell {0}
 

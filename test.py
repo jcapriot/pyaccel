@@ -1,6 +1,6 @@
 import scipy.sparse as sp
 import numpy as np
-from pyaccel.accel_solver import Solver
+from pyaccel.accel_solver import AccelerateSolver
 import discretize
 import time
 try:
@@ -21,7 +21,7 @@ x = np.random.rand(mesh.n_cells)
 b = A @ x
 
 t1 = time.time()
-Ainv = Solver(A)
+Ainv = AccelerateSolver(A)
 Ainv.factor()
 t2 = time.time()
 x2 = Ainv.solve(b)
@@ -51,7 +51,7 @@ x_c = np.random.rand(A_c.shape[1]) + 1j * np.random.rand(A_c.shape[1])
 b_c = A_c @ x_c
 
 t1 = time.time()
-Ainv3 = Solver(A_c)
+Ainv3 = AccelerateSolver(A_c)
 Ainv3.factor()
 t2 = time.time()
 
